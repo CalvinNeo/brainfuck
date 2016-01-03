@@ -11,6 +11,7 @@ class Variables:
         if len(self.items) <= i:
             self.items = self.items + [0] * (2*i-len(self.items))
         return self.items[i]
+
     def __setitem__(self, i, newv):
         if i >= 0:
             if len(self.items) <= i:
@@ -23,7 +24,10 @@ class Variables:
     def dec(self, i, delta = 1):
         self[i] -= delta
 
-def Parse(code):
+    def printall(self):
+        print self.items
+
+def Parse(code, debug = False):
     # init
     var = Variables()
     loop = []
@@ -38,13 +42,17 @@ def Parse(code):
                 ip = end
             else:
                 var.inc(ptr)
-        elif code[ip] == '-':            
+            if debug:
+                print "{}Ptr {} Add To {}".format('\t'*len(loop), ptr, var[ptr])
+        elif code[ip] == '-':
             if ip + 1 < ip_b and code[ip+1] == '(':
                 end = code.index(')', ip+2)
                 var.dec(ptr, int(code[ip+2:end]))
                 ip = end
             else:
                 var.dec(ptr)
+            if debug:
+                print "{}Ptr {} Sub To {}".format('\t'*len(loop), ptr, var[ptr])
         elif code[ip] == '>':
             if ip + 1 < ip_b and code[ip+1] == '(':
                 end = code.index(')', ip+2)
@@ -52,6 +60,8 @@ def Parse(code):
                 ip = end
             else:
                 ptr += 1
+            if debug:
+                print "{}Ptr Move To {}".format('\t'*len(loop), ptr)
         elif code[ip] == '<':                     
             if ip + 1 < ip_b and code[ip+1] == '(':
                 end = code.index(')', ip+2)
@@ -59,6 +69,8 @@ def Parse(code):
                 ip = end
             else:
                 ptr -= 1
+            if debug:
+                print "{}Ptr Move To {}".format('\t'*len(loop), ptr)
         elif code[ip] == '.':
             print chr(var[ptr]),
         elif code[ip] == ',':
@@ -77,12 +89,24 @@ def Parse(code):
                         layer -= 1
                     if layer == -1:
                         break
+            if debug:
+                print "{}loop begin at ip: {} ptr: {}".format('\t'*(len(loop)-1), ip, ptr)
         elif code[ip] == ']':
             dest, dummy = loop.pop()
             ip = dest - 1 # Note at the end of the main loop, ip increase itself
+            if debug:
+                print "{}loop end at ip: {} ptr: {}".format('\t'*len(loop), ip, ptr)
         elif code[ip] == '%':
             while code[ip] != '\n' and ip < ip_b:
                 ip += 1
+        elif code[ip] == '#':
+            if code[ip+1: ip+4] == 'stk':
+                print "Stack: ", 
+                var.printall()
+            elif code[ip+1: ip+4] == 'dbg':
+                debug = True
+            elif code[ip+1: ip+4] == 'cdb':
+                debug = False
         ip += 1
 
 if __name__ == '__main__':
@@ -90,13 +114,17 @@ if __name__ == '__main__':
     code = ""
     if len(sys.argv) < 2:
         while True:
-            line = sys.stdin.readline().strip('\t')
-            if line.strip('\n') == '':
-                break
-            else:
-                code += line
+            while True:
+                line = sys.stdin.readline().strip('\t')
+                if line.strip('\n') == '':
+                    print '-----EVALUATION-----'
+                    Parse(code, True)
+                    code = ''
+                    break
+                else:
+                    code += line
     else:
         code = open(sys.argv[1]).read()
         code = code.strip('\t').strip(' ')
-
-    Parse(code)
+        print '-----EVALUATION-----'
+        Parse(code)
